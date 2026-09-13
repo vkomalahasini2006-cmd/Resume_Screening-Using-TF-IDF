@@ -13,11 +13,13 @@ Hiring teams receive hundreds of resumes for a single job role. Manually reading
 - **Frontend**: Next.js, React (Black and Yellow Premium Theme)
 - **Backend**: FastAPI, Python
 - **Database**: MongoDB (Motor Async)
+- **Authentication**: Supabase (Email/Password + Google OAuth)
 - **Machine Learning & NLP**:
   - `spaCy` (Skill extraction, Named Entity Recognition)
   - `NLTK` (Text preprocessing, tokenization, lemmatization)
   - `scikit-learn` (TF-IDF Vectorization, Cosine Similarity)
   - `PyPDF2` (PDF Parsing)
+  - `pytesseract` (Optional OCR for scanned PDFs)
 
 ## 🧠 How the ML System Works
 
@@ -26,18 +28,18 @@ When a resume (Text or PDF) is uploaded, the system uses **NLTK** to clean the t
 - Converts text to lowercase.
 - Removes special characters and punctuation.
 - Tokenizes text into individual words.
-- Removes standard English stopwords (except domain-relevant words like "not" or "with").
-- Lemmatizes words (e.g., converts "running" to "run") to standardize terminology.
+- Removes standard English stopwords.
+- Lemmatizes words to standardize terminology.
 
 ### 2. Skill Extraction (NLP)
 The job description and candidate resumes are parsed to extract relevant skills using **spaCy**:
 - Uses predefined keyword lists for Tech and Soft skills.
-- Uses Named Entity Recognition (NER) to find specific tool names or organizations labeled as `ORG` or `PRODUCT`.
+- Uses Named Entity Recognition (NER) to find specific tool names.
 
 ### 3. Resume-to-Role Similarity Scoring
 The core matching engine compares the candidate's resume to the job description:
-- Both texts are vectorized using **TF-IDF (Term Frequency-Inverse Document Frequency)** via `scikit-learn`. This evaluates how important a word is to a document in a collection.
-- The **Cosine Similarity** between the job description vector and the resume vector is calculated to find the semantic textual overlap (scored from 0 to 1).
+- Both texts are vectorized using **TF-IDF (Term Frequency-Inverse Document Frequency)** via `scikit-learn`.
+- The **Cosine Similarity** between the job description vector and the resume vector is calculated to find the semantic textual overlap.
 
 ### 4. Skill Gap Identification
 The system cross-references the skills extracted from the job description with the skills found in the candidate's resume. It produces:
@@ -62,22 +64,41 @@ pip install -r requirements.txt
 python -m spacy download en_core_web_sm
 python main.py
 ```
-The FastAPI backend will be available at `http://localhost:8000`.
+The FastAPI backend will be available at `http://127.0.0.1:8000`.
 
-If you prefer to use Uvicorn directly:
-```bash
-cd backend
-uvicorn main:app --reload --host 127.0.0.1 --port 8000
-```
+### 2. Supabase Authentication Setup
+Before running the frontend, you must configure Supabase for Authentication:
+1. Create a project on [Supabase](https://supabase.com/).
+2. Get your **Project URL** and **Anon Public Key** from Project Settings -> API.
+3. Go to **Authentication -> Providers** and enable **Google**. Provide your Google OAuth Client ID and Secret (from Google Cloud Console).
+4. Add the following to Google Cloud Console Authorized redirect URIs: `https://<your-project-ref>.supabase.co/auth/v1/callback`
+5. In Supabase Authentication -> URL Configuration, set Site URL to `http://localhost:3000` and add `http://localhost:3000/auth/callback` to Redirect URLs.
 
-### 2. Frontend Setup
-Navigate to the `frontend` directory, install dependencies, and start the development server:
+### 3. Frontend Setup
+Navigate to the `frontend` directory, create your environment variables, install dependencies, and start the development server:
 ```bash
 cd frontend
+
+# Create .env.local file
+echo "NEXT_PUBLIC_SUPABASE_URL=your_supabase_url" > .env.local
+echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key" >> .env.local
+
 npm install
 npm run dev
 ```
 The Next.js app will be available at `http://localhost:3000`.
+
+## 🔧 Troubleshooting
+
+### 1. `TypeError: Failed to fetch` on PDF Upload
+If you see this error when trying to upload a PDF or screen resumes:
+- **Cause 1**: The Python backend is not running. Ensure you ran `python main.py` in the backend folder.
+- **Cause 2**: IPv6 resolution issues on Windows. The frontend explicitly calls `http://127.0.0.1:8000` instead of `localhost` to avoid Windows resolving `localhost` to IPv6 (`::1`).
+- **Cause 3**: CORS Policies. The backend explicitly allows origins `http://localhost:3000` and `http://127.0.0.1:3000` in `main.py`. Ensure you are accessing the frontend via one of those two exact URLs.
+
+### 2. Error Parsing PDF
+- Ensure that the Python backend successfully installed `PyPDF2` (via `pip install -r requirements.txt`). 
+- If the PDF is an image/scan rather than text, the backend will attempt to use Tesseract OCR. Ensure `pytesseract` and `pdf2image` are installed if you plan on processing scanned image PDFs.
 
 ### 3. Dataset-driven Resume Verification
 This project uses the Kaggle resume dataset to derive class-specific keywords for each predicted job class.
@@ -113,3 +134,4 @@ The script will produce `ranked_candidates.csv` in the current directory.
 ✔ Candidate ranking based on role fit
 ✔ Skill gap identification
 ✔ Visual comparisons & detailed candidate summaries
+✔ Supabase Authentication integration (Email + Google OAuth)

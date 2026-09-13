@@ -1,0 +1,20 @@
+{
+  "folders": [
+    {
+      "path": "backend",
+      "name": "Backend (Python)"
+    },
+    {
+      "path": "frontend",
+      "name": "Frontend (Next.js)"
+    }
+  ],
+  "settings": {
+    "[javascript]": {
+      "editor.defaultFormatter": "eslint"
+    },
+    "[python]": {
+      "editor.defaultFormatter": "ms-python.python"
+    }
+  }
+}
